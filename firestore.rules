@@ -53,6 +53,12 @@ service cloud.firestore {
         && incoming().diff(existing()).affectedKeys().hasOnly(['username']);
     }
 
+    // -- User Stats --
+    match /user_stats/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(userId) && isValidId(userId);
+    }
+
     // -- Matches Lobbies & Game State Synchronization --
     match /matches/{matchId} {
       // Anyone signed in can read matches (to find available lobbies or update active game)

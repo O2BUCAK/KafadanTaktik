@@ -32,12 +32,32 @@
         "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of the last turn action" }
       },
       "required": ["matchId", "hostId", "hostUsername", "hostTeam", "status", "phase", "createdAt", "updatedAt"]
+    },
+    "UserStats": {
+      "title": "User Statistics",
+      "description": "Aggregated tactical board match stats of the user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "matchesPlayed": { "type": "integer" },
+        "wins": { "type": "integer" },
+        "draws": { "type": "integer" },
+        "losses": { "type": "integer" },
+        "goalsScored": { "type": "integer" },
+        "goalsConceded": { "type": "integer" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "matchesPlayed", "wins", "draws", "losses", "goalsScored", "goalsConceded"]
     }
   },
   "firestore": {
     "users/{userId}": {
       "schema": "User",
       "description": "User profile document storing display name and registration timestamp."
+    },
+    "user_stats/{userId}": {
+      "schema": "UserStats",
+      "description": "Accumulated game metrics for user profiles."
     },
     "matches/{matchId}": {
       "schema": "Match",

@@ -11,6 +11,7 @@ import Pitch from './components/Pitch';
 import SquadSelection from './components/SquadSelection';
 import SquadDraftScreen from './components/SquadDraftScreen';
 import RulesModal from './components/RulesModal';
+import ProfileModal from './components/ProfileModal';
 import DiceRollEffect, { getPerformanceBracket } from './components/DiceRollEffect';
 import { 
   Dice5, Trophy, Sparkles, RefreshCw, Volume2, HelpCircle, 
@@ -20,9 +21,12 @@ import { TEAMS, TeamTheme } from './data/teams';
 import PlayerCard from './components/PlayerCard';
 import KafadanTaktikLogo from './components/KafadanTaktikLogo';
 
-// Firebase Firestore Imports
-import { db } from './utils/firebase';
-import { doc, updateDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+// Firebase Firestore & Auth Imports
+import { db, auth } from './utils/firebase';
+import { doc, updateDoc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
+import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, signInAnonymously, updateProfile } from 'firebase/auth';
+import { initializeUserStats, getUserStats, updateUserStatsAfterMatch } from './utils/stats';
+import type { UserStats } from './utils/stats';
 
 export default function App() {
   const welcomeLogged = useRef(false);
@@ -80,6 +84,34 @@ export default function App() {
   const [isPassingModeActive, setIsPassingModeActive] = useState<boolean>(false);
   const [plannedActions, setPlannedActions] = useState<Record<string, PlannedAction>>({});
   
+  // User profile and stats states
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
+  const [profileLoading, setProfileLoading] = useState<boolean>(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  // Monitor auth changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+      if (user) {
+        setProfileLoading(true);
+        try {
+          const stats = await initializeUserStats(user.uid);
+          setUserStats(stats);
+        } catch (err: any) {
+          console.error("Stats fetch error:", err);
+        } finally {
+          setProfileLoading(false);
+        }
+      } else {
+        setUserStats(null);
+      }
+    });
+    return unsubscribe;
+  }, []);
+
   // UI states
   const [isRulesOpen, setIsRulesOpen] = useState<boolean>(false);
   const [logs, setLogs] = useState<GameLog[]>([]);
@@ -1668,6 +1700,43 @@ export default function App() {
     setShowResolutionModal(false);
   };
 
+  // End active match and save statistics to Firestore
+  const endActiveMatch = async () => {
+    // Determine user team and opponent team
+    const userTeam: TeamColor = isOnlineMode && myOnlineTeam ? myOnlineTeam : 'Siyah';
+    const opponentTeam: TeamColor = userTeam === 'Siyah' ? 'Beyaz' : 'Siyah';
+    
+    const goalsScored = score[userTeam];
+    const goalsConceded = score[opponentTeam];
+    
+    let outcome: 'win' | 'draw' | 'loss' = 'draw';
+    if (goalsScored > goalsConceded) outcome = 'win';
+    else if (goalsScored < goalsConceded) outcome = 'loss';
+    
+    let statsMsg = "";
+    if (currentUser) {
+      try {
+        addLog(`Maç Sonlandırılıyor... İstatistikler kaydediliyor.`, "info", undefined, undefined, true);
+        const updatedStats = await updateUserStatsAfterMatch(
+          currentUser.uid,
+          goalsScored,
+          goalsConceded,
+          outcome
+        );
+        setUserStats(updatedStats);
+        statsMsg = "İstatistikleriniz başarıyla profilinize kaydedildi! 🏆";
+      } catch (err: any) {
+        console.error("Stats save error:", err);
+        statsMsg = "İstatistikler kaydedilirken bir hata oluştu.";
+      }
+    } else {
+      statsMsg = "Giriş yapmadığınız için istatistikler kaydedilmedi. Profil sekmesinden giriş yapabilirsiniz.";
+    }
+
+    setPhase('MATCH_OVER');
+    addLog(`Maç Sona Erdi! Skor: ${score.Siyah} - ${score.Beyaz}. ${statsMsg}`, "success", undefined, undefined, true);
+  };
+
   // Reset or Match restart triggers
   const executeMatchReset = () => {
     // Reset themes back to their clean template versions
@@ -1747,12 +1816,31 @@ export default function App() {
           )}
 
           <button
+            id="profile-toggle-btn"
+            onClick={() => setIsProfileOpen(true)}
+            className="text-xs uppercase bg-emerald-600 hover:bg-emerald-500 text-white transition-all px-3 py-1.5 rounded-lg font-extrabold cursor-pointer hover:scale-102 hover:shadow-sm flex items-center gap-1.5 active:scale-95"
+          >
+            <Trophy className="w-3.5 h-3.5 text-yellow-300 animate-bounce" />
+            <span>Profil & İstatistikler</span>
+          </button>
+
+          <button
             id="rules-toggle-btn"
             onClick={() => setIsRulesOpen(true)}
             className="text-xs uppercase bg-[#FAF7EE] text-[#0C251C] border-2 border-transparent hover:border-[#E75A51] transition-all px-3 py-1.5 rounded-lg font-extrabold cursor-pointer hover:scale-102 hover:shadow-sm"
           >
             Kurallar & KVKK
           </button>
+
+          {hasStartedMatch && phase !== 'MATCH_OVER' && (
+            <button
+              id="end-match-btn"
+              onClick={endActiveMatch}
+              className="text-xs uppercase bg-amber-500 hover:bg-amber-400 border-2 border-transparent active:scale-95 px-3 py-1.5 rounded-lg font-extrabold text-slate-900 transition-all cursor-pointer shadow-md"
+            >
+              Maçı Bitir
+            </button>
+          )}
 
           {hasStartedMatch && (
             <button
@@ -2587,6 +2675,15 @@ export default function App() {
       <RulesModal 
         isOpen={isRulesOpen} 
         onClose={() => setIsRulesOpen(false)} 
+      />
+
+      {/* Profile and Stats Dashboard Modal */}
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        currentUser={currentUser}
+        userStats={userStats}
+        onStatsUpdate={(newStats) => setUserStats(newStats)}
       />
 
       {/* Clean legislative footer */}
