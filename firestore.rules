@@ -1,0 +1,112 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // -- User Profiles --
+    match /users/{userId} {
+      // Direct get only allowed for the owner to protect PII (email, etc.)
+      allow get: if isOwner(userId);
+      allow list: if false;
+
+      // Create profile: Owner only, strict key matching and types
+      allow create: if isOwner(userId)
+        && isValidId(userId)
+        && incoming().keys().hasAll(['userId', 'username', 'email', 'createdAt'])
+        && incoming().keys().size() == 4
+        && incoming().userId == userId
+        && incoming().username is string && incoming().username.size() >= 3 && incoming().username.size() <= 32
+        && incoming().email is string && incoming().email.size() <= 128
+        && incoming().createdAt == request.time;
+
+      // Update profile: Only allow username changes, immutable IDs/emails
+      allow update: if isOwner(userId)
+        && incoming().userId == existing().userId
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt
+        && incoming().username is string && incoming().username.size() >= 3 && incoming().username.size() <= 32
+        && incoming().diff(existing()).affectedKeys().hasOnly(['username']);
+    }
+
+    // -- Matches Lobbies & Game State Synchronization --
+    match /matches/{matchId} {
+      // Anyone signed in can read matches (to find available lobbies or update active game)
+      // For lists, check that they only list waiting rooms OR matches where they are a participant
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && (
+        resource.data.status == 'waiting' ||
+        resource.data.hostId == request.auth.uid ||
+        resource.data.guestId == request.auth.uid
+      );
+
+      // Create match: Host sets themselves, starts waiting, sets valid teams, time
+      allow create: if isSignedIn()
+        && isValidId(matchId)
+        && incoming().keys().hasAll(['matchId', 'hostId', 'hostUsername', 'hostTeam', 'status', 'phase', 'createdAt', 'updatedAt'])
+        && incoming().hostId == request.auth.uid
+        && incoming().status == 'waiting'
+        && incoming().hostTeam in ['Siyah', 'Beyaz']
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      // Update match:
+      allow update: if isSignedIn() && (
+        // Action A: Joining. A guest joins a host's waiting lobby.
+        (
+          existing().status == 'waiting' &&
+          incoming().status == 'playing' &&
+          incoming().guestId == request.auth.uid &&
+          incoming().guestUsername is string &&
+          incoming().guestTeam in ['Siyah', 'Beyaz'] &&
+          incoming().guestTeam != existing().hostTeam &&
+          incoming().updatedAt == request.time &&
+          // Enforce other keys are unmodified or correctly filled
+          incoming().hostId == existing().hostId &&
+          incoming().hostUsername == existing().hostUsername &&
+          incoming().hostTeam == existing().hostTeam &&
+          incoming().matchId == existing().matchId &&
+          incoming().createdAt == existing().createdAt
+        ) ||
+        // Action B: Active Game Turns. Participants (Host/Guest) submit actions, swap turns, update phase, etc.
+        (
+          (existing().hostId == request.auth.uid || existing().guestId == request.auth.uid) &&
+          incoming().hostId == existing().hostId &&
+          incoming().guestId == existing().guestId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time
+        )
+      );
+
+      // Delete match: Only the host while match is waiting, or finished
+      allow delete: if isSignedIn() && (
+        existing().hostId == request.auth.uid && 
+        (existing().status == 'waiting' || existing().status == 'finished')
+      );
+    }
+  }
+}

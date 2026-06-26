@@ -1,0 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-board-cream: #FAF7EE;
+  --color-board-white: #FFFDF7;
+  --color-board-dark: #0C251C;
+  --color-board-coral: #E75A51;
+  --color-board-mustard: #F59B23;
+  --color-board-green: #5D8268;
+  --color-board-sage: #D6DEC9;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes rotateD20 {
+  0% { transform: scale(0.95) rotate(0deg); }
+  50% { transform: scale(1.05) rotate(180deg); }
+  100% { transform: scale(1) rotate(360deg); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.rotate-animation {
+  animation: rotateD20 0.6s ease-in-out;
+}
+
+body {
+  background-color: #FAF7EE;
+  background-image: radial-gradient(#d5ceb6 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: #0C251C;
+  font-family: var(--font-sans);
+}
+
+/* Custom Tabletop styling helpers */
+.tabletop-card {
+  background-color: #FFFDF7;
+  border: 3px solid #0C251C;
+  border-radius: 16px;
+  box-shadow: 5px 5px 0px 0px #0C251C;
+  color: #0C251C;
+  transition: all 0.2s ease-in-out;
+}
+
+.tabletop-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0px 0px #0C251C;
+}
+
+.tabletop-btn-primary {
+  background-color: #E75A51;
+  color: #FFFDF7;
+  border: 3px solid #0C251C;
+  border-radius: 12px;
+  box-shadow: 3px 3px 0px 0px #0C251C;
+  font-weight: 800;
+  text-transform: uppercase;
+  transition: all 0.15s ease-in-out;
+}
+
+.tabletop-btn-primary:hover {
+  background-color: #f16960;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px 0px #0C251C;
+}
+
+.tabletop-btn-primary:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px 0px #0C251C;
+}
+
+.tabletop-btn-secondary {
+  background-color: #F59B23;
+  color: #0C251C;
+  border: 3px solid #0C251C;
+  border-radius: 12px;
+  box-shadow: 3px 3px 0px 0px #0C251C;
+  font-weight: 850;
+  text-transform: uppercase;
+  transition: all 0.15s ease-in-out;
+}
+
+.tabletop-btn-secondary:hover {
+  background-color: #fab552;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px 0px #0C251C;
+}
+
+.tabletop-btn-secondary:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px 0px #0C251C;
+}
+
+

@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account registration and public display details.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The unique user identifier matching their Auth UID" },
+        "username": { "type": "string", "description": "Display name of the user" },
+        "email": { "type": "string", "description": "User email address" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the profile was created" }
+      },
+      "required": ["userId", "username", "email", "createdAt"]
+    },
+    "Match": {
+      "title": "Match Game Session",
+      "description": "An online real-time match session containing full game state and turn variables.",
+      "type": "object",
+      "properties": {
+        "matchId": { "type": "string", "description": "The unique automatic match ID" },
+        "hostId": { "type": "string", "description": "The Auth UID of the player who created the match" },
+        "guestId": { "type": "string", "description": "The Auth UID of the player who joined the match, or null if empty" },
+        "hostUsername": { "type": "string", "description": "Username of the host player" },
+        "guestUsername": { "type": "string", "description": "Username of the opponent player, or null" },
+        "hostTeam": { "type": "string", "enum": ["Siyah", "Beyaz"], "description": "Team color chosen by the host" },
+        "guestTeam": { "type": "string", "enum": ["Siyah", "Beyaz"], "description": "Team color assigned to/chosen by the guest" },
+        "status": { "type": "string", "enum": ["waiting", "playing", "finished"], "description": "Current matchmaking state" },
+        "activeTeam": { "type": "string", "enum": ["Siyah", "Beyaz"], "description": "Whose turn it is in the active phase" },
+        "phase": { "type": "string", "description": "Current gameplay phase" },
+        "gameState": { "type": "object", "description": "Full compressed JSON or structured state of the tactical football simulation" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of session initialization" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of the last turn action" }
+      },
+      "required": ["matchId", "hostId", "hostUsername", "hostTeam", "status", "phase", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profile document storing display name and registration timestamp."
+    },
+    "matches/{matchId}": {
+      "schema": "Match",
+      "description": "Live match lobby and active game synchronization container."
+    }
+  }
+}

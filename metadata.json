@@ -1,0 +1,6 @@
+{
+  "name": "Kafadan Taktik",
+  "description": "21x13 saha üzerinde 20'li zar (d20) mekanikli, tur bazlı futbol taktik ve strateji oyunu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
