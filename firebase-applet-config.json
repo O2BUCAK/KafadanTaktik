@@ -1,10 +1,10 @@
 {
-  "projectId": "ai-studio-applet-webapp-56d2b",
-  "appId": "1:462210944190:web:e7d30161095fff144c62ef",
-  "apiKey": "AIzaSyBzCi4A4AmQr1EB38aLJsKZLANKfsYzTYU",
-  "authDomain": "ai-studio-applet-webapp-56d2b.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-8887c0ec-4af5-4514-a8b0-98f1463cf31a",
-  "storageBucket": "ai-studio-applet-webapp-56d2b.firebasestorage.app",
-  "messagingSenderId": "462210944190",
+  "projectId": "kafadantaktik",
+  "appId": "1:298234072803:web:443453feada24cc1d93fd6",
+  "apiKey": "AIzaSyCgFn3WHhZc17jNNhL7J9veW4zEGxyAS9Y",
+  "authDomain": "kafadantaktik.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-kafadantaktik-8887c0ec-4af5-4514-a8b0-98f1463cf31a",
+  "storageBucket": "kafadantaktik.firebasestorage.app",
+  "messagingSenderId": "298234072803",
   "measurementId": ""
 }
