@@ -20,6 +20,7 @@ import {
 import { TEAMS, TeamTheme } from './data/teams';
 import PlayerCard from './components/PlayerCard';
 import KafadanTaktikLogo from './components/KafadanTaktikLogo';
+import { AdSenseBanner } from './components/AdSenseBanner';
 
 // Firebase Firestore & Auth Imports
 import { db, auth } from './utils/firebase';
@@ -2376,6 +2377,9 @@ export default function App() {
 
           </div>
         )}
+
+        {/* Google AdSense Display Banner */}
+        <AdSenseBanner className="mt-2" />
 
       </main>
 
