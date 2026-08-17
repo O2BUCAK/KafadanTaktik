@@ -6,3 +6,13 @@ coverage/
 *.log
 .env*
 !.env.example
+*.pem
+*.key
+*.cert
+*.crt
+*serviceAccount*.json
+*credentials*.json
+.firebase/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

@@ -11,6 +11,13 @@ import {
 import { auth, db } from '../utils/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeUserStats, UserStats } from '../utils/stats';
+import { 
+  sanitizeUsername, 
+  isValidUsername, 
+  isValidEmail, 
+  isValidPassword, 
+  checkRateLimit 
+} from '../utils/security';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -36,22 +43,28 @@ export default function ProfileModal({
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [botTrap, setBotTrap] = useState('');
 
   if (!isOpen) return null;
 
   // Google Sign In
   const handleGoogleSignIn = async () => {
+    if (!checkRateLimit('profile_google_auth', 4, 10000)) {
+      setError('Çok sık giriş denemesi yapıldı. Lütfen biraz bekleyin.');
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
       const provider = new GoogleAuthProvider();
       const cred = await signInWithPopup(auth, provider);
-      const username = cred.user.displayName || cred.user.email?.split('@')[0] || 'Kafadan Taktikçi';
+      const rawName = cred.user.displayName || cred.user.email?.split('@')[0] || 'Kafadan Taktikçi';
+      const cleanUsername = sanitizeUsername(rawName) || 'Taktikçi';
       
       const userRef = doc(db, 'users', cred.user.uid);
       await setDoc(userRef, {
         userId: cred.user.uid,
-        username: username,
+        username: cleanUsername,
         email: cred.user.email || 'google@kafadantaktik.com',
         createdAt: serverTimestamp()
       }, { merge: true });
@@ -69,8 +82,17 @@ export default function ProfileModal({
   // Quick Anonymous Login
   const handleAnonymousAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nickname.trim() || nickname.trim().length < 3) {
-      setError('Kullanıcı rumuzu en az 3 karakter olmalıdır.');
+    if (botTrap) return;
+
+    if (!checkRateLimit('profile_anon_auth', 5, 10000)) {
+      setError('Çok fazla istek gönderildi. Lütfen birkaç saniye bekleyin.');
+      return;
+    }
+
+    const cleanNick = sanitizeUsername(nickname);
+    const validCheck = isValidUsername(cleanNick);
+    if (!validCheck.valid) {
+      setError(validCheck.error || 'Geçersiz kullanıcı rumuzu.');
       return;
     }
     setError(null);
@@ -78,13 +100,13 @@ export default function ProfileModal({
     try {
       const cred = await signInAnonymously(auth);
       await updateProfile(cred.user, {
-        displayName: nickname.trim()
+        displayName: cleanNick
       });
       
       const userRef = doc(db, 'users', cred.user.uid);
       await setDoc(userRef, {
         userId: cred.user.uid,
-        username: nickname.trim(),
+        username: cleanNick,
         email: 'anonymous@kafadantaktik.com',
         createdAt: serverTimestamp()
       });
@@ -101,35 +123,55 @@ export default function ProfileModal({
   // Email and Password Login / Signup
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      setError('Lütfen tüm alanları doldurun.');
+    if (botTrap) return;
+
+    if (!checkRateLimit('profile_email_auth', 5, 10000)) {
+      setError('Çok fazla deneme yapıldı. Lütfen biraz bekleyin.');
       return;
     }
-    if (isSignUp && (!nickname.trim() || nickname.trim().length < 3)) {
-      setError('Rumuz en az 3 karakter olmalıdır.');
+
+    if (!isValidEmail(email)) {
+      setError('Lütfen geçerli bir e-posta adresi girin.');
       return;
     }
+
+    const passCheck = isValidPassword(password);
+    if (!passCheck.valid) {
+      setError(passCheck.error || 'Geçersiz şifre.');
+      return;
+    }
+
+    if (isSignUp) {
+      const cleanNick = sanitizeUsername(nickname);
+      const nickCheck = isValidUsername(cleanNick);
+      if (!nickCheck.valid) {
+        setError(nickCheck.error || 'Rumuz geçersiz.');
+        return;
+      }
+    }
+
     setError(null);
     setLoading(true);
     try {
       if (isSignUp) {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        const cleanNick = sanitizeUsername(nickname);
+        const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
         await updateProfile(cred.user, {
-          displayName: nickname.trim()
+          displayName: cleanNick
         });
         
         const userRef = doc(db, 'users', cred.user.uid);
         await setDoc(userRef, {
           userId: cred.user.uid,
-          username: nickname.trim(),
-          email: email,
+          username: cleanNick,
+          email: email.trim(),
           createdAt: serverTimestamp()
         });
         
         const stats = await initializeUserStats(cred.user.uid);
         onStatsUpdate(stats);
       } else {
-        const cred = await signInWithEmailAndPassword(auth, email, password);
+        const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
         const stats = await initializeUserStats(cred.user.uid);
         onStatsUpdate(stats);
       }
@@ -338,6 +380,15 @@ export default function ProfileModal({
               {!isEmailFormOpen ? (
                 /* Standard fast nickname auth option */
                 <form onSubmit={handleAnonymousAuth} className="bg-white p-4 rounded-xl border border-[#0C251C]/15 space-y-3 shadow-inner">
+                  <input 
+                    type="text" 
+                    name="kt_anti_bot_pm_anon" 
+                    value={botTrap} 
+                    onChange={(e) => setBotTrap(e.target.value)} 
+                    className="hidden" 
+                    tabIndex={-1} 
+                    autoComplete="off" 
+                  />
                   <span className="bg-emerald-900/10 text-emerald-800 text-[8.5px] font-black uppercase px-2 py-0.5 rounded font-mono">
                     Hızlı Misafir Girişi
                   </span>
@@ -370,6 +421,15 @@ export default function ProfileModal({
               ) : (
                 /* Traditional Email/Password Form */
                 <form onSubmit={handleEmailAuth} className="bg-white p-4 rounded-xl border border-[#0C251C]/15 space-y-3 shadow-inner">
+                  <input 
+                    type="text" 
+                    name="kt_anti_bot_pm_email" 
+                    value={botTrap} 
+                    onChange={(e) => setBotTrap(e.target.value)} 
+                    className="hidden" 
+                    tabIndex={-1} 
+                    autoComplete="off" 
+                  />
                   <div className="flex justify-between items-center">
                     <span className="bg-amber-100 text-amber-800 text-[8.5px] font-black uppercase px-2 py-0.5 rounded font-mono">
                       {isSignUp ? 'Hesap Oluştur' : 'E-Posta Girişi'}

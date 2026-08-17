@@ -18,6 +18,13 @@ import {
 } from 'lucide-react';
 import { TeamTheme, TEAMS } from '../data/teams';
 import { initializeUserStats } from '../utils/stats';
+import { 
+  sanitizeUsername, 
+  isValidUsername, 
+  isValidEmail, 
+  isValidPassword, 
+  checkRateLimit 
+} from '../utils/security';
 
 interface OnlineLobbyProps {
   onMatchConnected: (matchId: string, isHost: boolean, myTeam: 'Siyah' | 'Beyaz', activeTheme: TeamTheme, opponentTheme: TeamTheme) => void;
@@ -89,25 +96,39 @@ export default function OnlineLobby({
     return unsubscribe;
   }, [currentUser]);
 
+  // Bot protection honeypot
+  const [botTrap, setBotTrap] = useState('');
+
   // Handle Quick Auth (Anonymous)
   const handleAnonymousAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nickname.trim() || nickname.trim().length < 3) {
-      setAuthError('Kullanıcı adı en az 3 karakter olmalıdır.');
+    if (botTrap) return; // Silent rejection for bots triggering honeypot
+    
+    // Rate limit check
+    if (!checkRateLimit('lobby_auth_attempt', 5, 10000)) {
+      setAuthError('Çok fazla deneme yaptınız. Lütfen birkaç saniye bekleyin.');
       return;
     }
+
+    const cleanNick = sanitizeUsername(nickname);
+    const validCheck = isValidUsername(cleanNick);
+    if (!validCheck.valid) {
+      setAuthError(validCheck.error || 'Geçersiz kullanıcı adı.');
+      return;
+    }
+
     setAuthError(null);
     setIsActionLoading(true);
     try {
       const cred = await signInAnonymously(auth);
       await updateProfile(cred.user, {
-        displayName: nickname.trim()
+        displayName: cleanNick
       });
       // Save profile to users collection
       const userRef = doc(db, 'users', cred.user.uid);
       await setDoc(userRef, {
         userId: cred.user.uid,
-        username: nickname.trim(),
+        username: cleanNick,
         email: 'anonymous@kafadantaktik.com',
         createdAt: serverTimestamp()
       });
@@ -122,18 +143,23 @@ export default function OnlineLobby({
 
   // Handle Google Auth
   const handleGoogleSignIn = async () => {
+    if (!checkRateLimit('lobby_google_auth', 4, 10000)) {
+      setAuthError('Çok sık giriş isteği gönderildi. Lütfen bekleyin.');
+      return;
+    }
     setAuthError(null);
     setIsActionLoading(true);
     try {
       const provider = new GoogleAuthProvider();
       const cred = await signInWithPopup(auth, provider);
-      const username = cred.user.displayName || cred.user.email?.split('@')[0] || 'Kafadan Taktikçi';
+      const rawName = cred.user.displayName || cred.user.email?.split('@')[0] || 'Kafadan Taktikçi';
+      const cleanUsername = sanitizeUsername(rawName) || 'Taktikçi';
       
       // Save profile to users collection
       const userRef = doc(db, 'users', cred.user.uid);
       await setDoc(userRef, {
         userId: cred.user.uid,
-        username: username,
+        username: cleanUsername,
         email: cred.user.email || 'google@kafadantaktik.com',
         createdAt: serverTimestamp()
       }, { merge: true });
@@ -150,35 +176,55 @@ export default function OnlineLobby({
   // Handle Email Auth (Sign In / Register)
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nickname.trim() && isSignUp) {
-      setAuthError('Kullanıcı adı giriniz.');
+    if (botTrap) return; // Bot protection
+
+    if (!checkRateLimit('lobby_email_auth', 5, 10000)) {
+      setAuthError('Çok fazla işlem yapıldı. Lütfen biraz bekleyin.');
       return;
     }
-    if (!email || !password) {
-      setAuthError('Lütfen tüm alanları doldurun.');
+
+    if (isSignUp) {
+      const cleanNick = sanitizeUsername(nickname);
+      const nickCheck = isValidUsername(cleanNick);
+      if (!nickCheck.valid) {
+        setAuthError(nickCheck.error || 'Kullanıcı adı geçersiz.');
+        return;
+      }
+    }
+
+    if (!isValidEmail(email)) {
+      setAuthError('Lütfen geçerli bir e-posta adresi girin.');
       return;
     }
+
+    const passCheck = isValidPassword(password);
+    if (!passCheck.valid) {
+      setAuthError(passCheck.error || 'Geçersiz şifre.');
+      return;
+    }
+
     setAuthError(null);
     setIsActionLoading(true);
     try {
       if (isSignUp) {
-        // Register
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        // Register (Passwords automatically salted and hashed securely by Firebase Auth)
+        const cleanNick = sanitizeUsername(nickname);
+        const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
         await updateProfile(cred.user, {
-          displayName: nickname.trim()
+          displayName: cleanNick
         });
         const userRef = doc(db, 'users', cred.user.uid);
         await setDoc(userRef, {
           userId: cred.user.uid,
-          username: nickname.trim(),
-          email: email,
+          username: cleanNick,
+          email: email.trim(),
           createdAt: serverTimestamp()
         });
         // Initialize statistics
         await initializeUserStats(cred.user.uid);
       } else {
         // Login
-        const cred = await signInWithEmailAndPassword(auth, email, password);
+        const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
         setNickname(cred.user.displayName || '');
         // Initialize statistics
         await initializeUserStats(cred.user.uid);
@@ -193,16 +239,21 @@ export default function OnlineLobby({
   // Create match room
   const handleCreateMatch = async () => {
     if (!currentUser) return;
+    if (!checkRateLimit('lobby_create_match', 3, 10000)) {
+      setMatchStatusMsg('Lütfen yeni oda kurmadan önce birkaç saniye bekleyin.');
+      return;
+    }
     setIsActionLoading(true);
     const matchId = 'match_' + Math.random().toString(36).substring(2, 10);
     setMatchStatusMsg('Online oda kuruluyor, rakip bekleniyor...');
     
     try {
       const matchRef = doc(db, 'matches', matchId);
+      const cleanHostUsername = sanitizeUsername(currentUser.displayName || 'Ev Sahibi') || 'Ev Sahibi';
       await setDoc(matchRef, {
         matchId,
         hostId: currentUser.uid,
-        hostUsername: currentUser.displayName || 'Ev Sahibi',
+        hostUsername: cleanHostUsername,
         hostTeam: hostTeamColor,
         hostThemeId: hostSelectedTheme.id,
         guestId: null,
@@ -361,6 +412,16 @@ export default function OnlineLobby({
             <div className="h-px bg-slate-200 flex-1"></div>
           </div>
           <form onSubmit={handleAnonymousAuth} className="p-4 bg-white rounded-lg border border-[#0C251C]/10 space-y-3 shadow-inner">
+            {/* Bot Protection Honeypot field (hidden from real users) */}
+            <input 
+              type="text" 
+              name="kt_anti_bot_hp" 
+              value={botTrap} 
+              onChange={(e) => setBotTrap(e.target.value)} 
+              className="hidden" 
+              tabIndex={-1} 
+              autoComplete="off" 
+            />
             <span className="bg-emerald-900/10 text-emerald-800 text-[9px] font-black uppercase px-2 py-0.5 rounded font-mono">
               Hızlı Giriş (Önerilen)
             </span>
@@ -392,6 +453,15 @@ export default function OnlineLobby({
           </div>
 
           <form onSubmit={handleEmailAuth} className="p-4 bg-white rounded-lg border border-[#0C251C]/10 space-y-3.5 shadow-inner">
+            <input 
+              type="text" 
+              name="kt_anti_bot_hp_email" 
+              value={botTrap} 
+              onChange={(e) => setBotTrap(e.target.value)} 
+              className="hidden" 
+              tabIndex={-1} 
+              autoComplete="off" 
+            />
             {isSignUp && (
               <div className="space-y-1">
                 <label className="text-[9px] uppercase tracking-wider font-bold text-slate-500 font-mono">Kullanıcı Rumuz:</label>

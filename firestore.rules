@@ -56,7 +56,25 @@ service cloud.firestore {
     // -- User Stats --
     match /user_stats/{userId} {
       allow read: if isSignedIn();
-      allow create, update: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) 
+        && isValidId(userId)
+        && incoming().userId == userId
+        && incoming().matchesPlayed is int && incoming().matchesPlayed >= 0
+        && incoming().wins is int && incoming().wins >= 0
+        && incoming().draws is int && incoming().draws >= 0
+        && incoming().losses is int && incoming().losses >= 0
+        && incoming().goalsScored is int && incoming().goalsScored >= 0
+        && incoming().goalsConceded is int && incoming().goalsConceded >= 0;
+      allow update: if isOwner(userId) 
+        && isValidId(userId)
+        && incoming().userId == existing().userId
+        && incoming().matchesPlayed is int && incoming().matchesPlayed >= existing().matchesPlayed
+        && incoming().wins is int && incoming().wins >= existing().wins
+        && incoming().draws is int && incoming().draws >= existing().draws
+        && incoming().losses is int && incoming().losses >= existing().losses
+        && incoming().goalsScored is int && incoming().goalsScored >= existing().goalsScored
+        && incoming().goalsConceded is int && incoming().goalsConceded >= existing().goalsConceded;
+      allow delete: if isOwner(userId);
     }
 
     // -- Matches Lobbies & Game State Synchronization --
