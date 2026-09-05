@@ -509,11 +509,25 @@ export default function ProfileModal({
         </div>
 
         {/* KVKK / Data Protection compliant professional footer disclaimer - 2026 Yasaları ve KVKK standardı */}
-        <div className="bg-slate-100 p-3 border-t-2 border-[#0C251C]/10 flex items-start gap-2">
-          <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5 animate-pulse" />
-          <p className="text-[8px] text-slate-500 leading-normal font-medium font-sans">
-            <strong>KVKK BİLGİLENDİRMESİ &amp; 2026 STANDARTLARI:</strong> Verileriniz, 6698 Sayılı Kişisel Verilerin Korunması Kanunu ve 2026 Türkiye Cumhuriyeti veri koruma tebliğlerine tam uyumlu olarak Türkiye ve Firebase EMEA sunucularında şifrelenmiş olarak saklanır. İstatistikleriniz sadece oyun içi karne gösterimi amacıyla işlenir, reklam veya 3. şahıslara satış amacıyla asla paylaşılamaz. İstediğiniz an profilinizi silme hakkına sahipsiniz.
-          </p>
+        <div className="bg-slate-100 p-3 border-t-2 border-[#0C251C]/10 flex flex-col gap-2">
+          <div className="flex items-start gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+            <p className="text-[8.5px] text-slate-500 leading-normal font-medium font-sans">
+              <strong>KVKK BİLGİLENDİRMESİ &amp; 2026 STANDARTLARI:</strong> Verileriniz, 6698 Sayılı Kişisel Verilerin Korunması Kanunu ve 2026 Türkiye Cumhuriyeti veri koruma tebliğlerine tam uyumlu olarak Türkiye ve Firebase EMEA sunucularında şifrelenmiş olarak saklanır. İstatistikleriniz sadece oyun içi karne gösterimi amacıyla işlenir, reklam veya 3. şahıslara satış amacıyla asla paylaşılamaz.
+            </p>
+          </div>
+          <div className="flex items-center justify-between pt-1.5 border-t border-slate-200 text-[9px] text-slate-500">
+            <span className="flex items-center gap-1 font-medium">
+              <Mail className="w-3 h-3 text-[#E75A51]" />
+              Öneri, istek ve görüşler için:
+            </span>
+            <a 
+              href="mailto:ersin@ozbucak.com.tr?subject=Kafadan%20Taktik%20-%20Profil%20ve%20Oyun%20Geri%20Bildirim"
+              className="font-mono font-bold text-[#0C251C] hover:text-[#E75A51] underline underline-offset-2 transition-colors cursor-pointer"
+            >
+              ersin@ozbucak.com.tr
+            </a>
+          </div>
         </div>
       </div>
     </div>

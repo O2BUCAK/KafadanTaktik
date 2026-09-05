@@ -15,7 +15,7 @@ import ProfileModal from './components/ProfileModal';
 import DiceRollEffect, { getPerformanceBracket } from './components/DiceRollEffect';
 import { 
   Dice5, Trophy, Sparkles, RefreshCw, Volume2, HelpCircle, 
-  ChevronRight, Play, CheckCircle2, AlertCircle, Info, ShieldAlert, ListFilter, Palette, Globe 
+  ChevronRight, Play, CheckCircle2, AlertCircle, Info, ShieldAlert, ListFilter, Palette, Globe, Mail 
 } from 'lucide-react';
 import { TEAMS, TeamTheme } from './data/teams';
 import PlayerCard from './components/PlayerCard';
@@ -2690,13 +2690,29 @@ export default function App() {
         onStatsUpdate={(newStats) => setUserStats(newStats)}
       />
 
-      {/* Clean legislative footer */}
-      <footer id="regulatory-footer" className="bg-[#0a0f1d] border-t border-slate-800/80 py-4 px-6 text-center text-[10px] text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-3 font-sans">
-        <div className="flex items-center gap-2">
-          <ShieldAlert className="w-3.5 h-3.5 text-slate-650" />
-          <span>Kafadan Taktik %100 Yerel Depolamalı, KVKK-Uyumlu & Ücretsiz Eğlence Yazılımıdır.</span>
+      {/* Clean legislative and contact footer */}
+      <footer id="regulatory-footer" className="bg-[#0a0f1d] border-t border-slate-800/80 py-3.5 px-4 md:px-6 text-[10.5px] text-slate-400 flex flex-col md:flex-row items-center justify-between gap-3 font-sans">
+        <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
+          <div className="flex items-center gap-1.5 text-slate-400">
+            <ShieldAlert className="w-3.5 h-3.5 text-slate-500" />
+            <span>Kafadan Taktik %100 Yerel Depolamalı, KVKK-Uyumlu & Ücretsiz Eğlence Yazılımıdır.</span>
+          </div>
+          <span className="hidden md:inline text-slate-700">•</span>
+          <span className="text-slate-500">© 2026 Kafadan Taktik</span>
         </div>
-        <span>© 2026 Kafadan Taktik • T.C. Bilişim Mevzuatı ve Lisans Güvencesi</span>
+
+        {/* Contact / Suggestions & Requests */}
+        <div id="feedback-contact-area" className="flex items-center gap-2 bg-[#0f172a] border border-slate-800 hover:border-slate-700 px-3.5 py-1.5 rounded-lg text-slate-300 transition-colors shadow-inner">
+          <Mail className="w-3.5 h-3.5 text-[#E75A51] shrink-0" />
+          <span className="text-slate-400 font-medium">Öneri, istek ve görüşler için:</span>
+          <a 
+            href="mailto:ersin@ozbucak.com.tr?subject=Kafadan%20Taktik%20-%20%C3%96neri%20ve%20G%C3%B6r%C3%BC%C5%9F" 
+            className="text-amber-400 hover:text-amber-300 font-semibold font-mono tracking-tight underline underline-offset-2 transition-colors cursor-pointer"
+            title="E-posta ile ilet"
+          >
+            ersin@ozbucak.com.tr
+          </a>
+        </div>
       </footer>
 
     </div>

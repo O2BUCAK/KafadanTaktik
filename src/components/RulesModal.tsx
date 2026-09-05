@@ -1,4 +1,4 @@
-import { Info, ShieldAlert, Check, X, Dice5 } from 'lucide-react';
+import { Info, ShieldAlert, Check, X, Dice5, Mail } from 'lucide-react';
 
 interface RulesModalProps {
   isOpen: boolean;
@@ -134,6 +134,30 @@ export default function RulesModal({ isOpen, onClose }: RulesModalProps) {
             <p className="text-[10px] text-slate-500 leading-normal font-sans font-medium">
               Bu uygulama, 6698 Sayılı Kişisel Verilerin Korunması Kanunu (<strong>KVKK</strong>) ve 2026 yılı güncel Türk bilişim mevzuatlarına tam uyumludur. Oyunda girdiğiniz oyuncu taktikleri, maç kayıtları, takma adlar veya oyun tercihleri hiçbir şekilde uzak bir sunucuya gönderilmez veya çerezler vasıtasıyla üçüncü taraflarla paylaşılmaz. Tüm veriler tam güvenlikle sadece tarayıcınızın yerel depolama alanında (<strong>localStorage</strong>) saklanmaktadır. Oyunda gerçek parayla kumar, bahis veya herhangi bir oyun içi ödeme sistemi bulunmamaktadır; oyun %100 ücretsiz, reklamsız ve açık kaynaklıdır.
             </p>
+          </div>
+
+          {/* 7. Öneri, İstek ve Görüşler İçin İletişim */}
+          <div className="bg-[#FAF7EE] border-2 border-[#0C251C] p-3.5 rounded-xl flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 bg-white border border-[#0C251C]/20 rounded-lg text-[#0C251C] shadow-xs">
+                <Mail className="w-4 h-4 text-[#E75A51]" />
+              </div>
+              <div>
+                <h4 className="text-[11px] font-black uppercase tracking-wider text-[#0C251C]">
+                  Öneri, İstek ve Görüşleriniz
+                </h4>
+                <p className="text-[10px] text-slate-600 font-sans">
+                  Geliştirme önerileri, taktiksel fikirler ve geri bildirimleriniz için bize doğrudan ulaşabilirsiniz.
+                </p>
+              </div>
+            </div>
+            <a 
+              href="mailto:ersin@ozbucak.com.tr?subject=Kafadan%20Taktik%20-%20Geri%20Bildirim"
+              className="text-xs font-bold font-mono text-[#0C251C] bg-white hover:bg-slate-100 border border-[#0C251C] px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <Mail className="w-3.5 h-3.5 text-[#E75A51]" />
+              ersin@ozbucak.com.tr
+            </a>
           </div>
 
         </div>
