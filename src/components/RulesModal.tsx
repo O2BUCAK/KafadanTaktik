@@ -125,14 +125,14 @@ export default function RulesModal({ isOpen, onClose }: RulesModalProps) {
             </ul>
           </div>
 
-          {/* 6. KVKK ve Bilgi Guvenligi */}
+          {/* 6. KVKK ve Bilgi Güvenliği */}
           <div className="border-t-2 border-[#0C251C]/10 pt-4 mt-2 flex flex-col gap-2">
             <h4 className="text-[11px] font-black uppercase tracking-wider text-[#E75A51] flex items-center gap-1.5">
               <ShieldAlert className="w-4 h-4 text-[#E75A51]" />
               Bilgi Güvenliği, Bağımsız Yazılım ve KVKK Bildirisi (2026 Mevzuatı)
             </h4>
             <p className="text-[10px] text-slate-500 leading-normal font-sans font-medium">
-              Bu uygulama, 6698 Sayılı Kişisel Verilerin Korunması Kanunu (<strong>KVKK</strong>) ve 2026 yılı güncel Türk bilişim mevzuatlarına tam uyumludur. Oyunda girdiğiniz oyuncu taktikleri, maç kayıtları, takma adlar veya oyun tercihleri hiçbir şekilde uzak bir sunucuya gönderilmez veya çerezler vasıtasıyla üçüncü taraflarla paylaşılmaz. Tüm veriler tam güvenlikle sadece tarayıcınızın yerel depolama alanında (<strong>localStorage</strong>) saklanmaktadır. Oyunda gerçek parayla kumar, bahis veya herhangi bir oyun içi ödeme sistemi bulunmamaktadır; oyun %100 ücretsiz, reklamsız ve açık kaynaklıdır.
+              Bu uygulama, 6698 Sayılı Kişisel Verilerin Korunması Kanunu (<strong>KVKK</strong>) ve 2026 yılı güncel Türk bilişim güvenliği mevzuatlarına tam uyumludur. Tek oyunculu (Yapay Zeka ve Yerel 2P) modlarda oyun tercihleri ve maç kayıtları sadece cihazınızın yerel depolama alanında (<strong>localStorage</strong>) saklanır. Çevrim içi (Online Çok Oyunculu) modda ise kimlik doğrulama, maç eşleştirme ve istatistik kayıtları için Google Firebase EMEA bulut altyapısı uçtan uca şifreli olarak kullanılır; verileriniz hiçbir reklam veren veya yetkisiz üçüncü şahısla paylaşılmaz. Oyunda kumar, bahis veya gerçek parayla oyun içi satın alma bulunmaz; oyun tamamen ücretsizdir.
             </p>
           </div>
 

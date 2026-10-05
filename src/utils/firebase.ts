@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
+import { maskEmail } from './security';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -27,34 +28,37 @@ export interface FirestoreErrorInfo {
   path: string | null;
   authInfo: {
     userId?: string | null;
-    email?: string | null;
+    maskedEmail?: string | null;
     emailVerified?: boolean | null;
     isAnonymous?: boolean | null;
     tenantId?: string | null;
     providerInfo?: {
       providerId?: string | null;
-      email?: string | null;
+      maskedEmail?: string | null;
     }[];
   };
 }
 
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): FirestoreErrorInfo {
+  const rawErrorMessage = error instanceof Error ? error.message : String(error);
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: rawErrorMessage,
     authInfo: {
       userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
+      maskedEmail: maskEmail(auth.currentUser?.email),
       emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
       tenantId: auth.currentUser?.tenantId,
       providerInfo: auth.currentUser?.providerData?.map(provider => ({
         providerId: provider.providerId,
-        email: provider.email,
+        maskedEmail: maskEmail(provider.email),
       })) || []
     },
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  
+  // Safe sanitized logging (prevents CWE-532 PII leakage)
+  console.error(`[Firestore ${operationType.toUpperCase()}] ${path || 'unknown'}: ${rawErrorMessage}`);
+  return errInfo;
 }

@@ -7,6 +7,23 @@
 const actionTimestamps: Record<string, number[]> = {};
 
 /**
+ * Prunes expired timestamps and removes empty keys to prevent unbounded memory growth (CWE-400)
+ */
+function pruneRateLimitStore(now: number, maxWindowMs: number = 60000): void {
+  const keys = Object.keys(actionTimestamps);
+  if (keys.length > 50) {
+    for (const key of keys) {
+      const filtered = (actionTimestamps[key] || []).filter(t => now - t < maxWindowMs);
+      if (filtered.length === 0) {
+        delete actionTimestamps[key];
+      } else {
+        actionTimestamps[key] = filtered;
+      }
+    }
+  }
+}
+
+/**
  * Checks and updates rate limit for a specific action key
  * @param actionKey Identifier for the action (e.g. 'auth_attempt', 'create_room')
  * @param maxHits Maximum allowed actions within windowMs
@@ -15,6 +32,8 @@ const actionTimestamps: Record<string, number[]> = {};
  */
 export function checkRateLimit(actionKey: string, maxHits: number = 5, windowMs: number = 10000): boolean {
   const now = Date.now();
+  pruneRateLimitStore(now, windowMs * 2);
+
   const timestamps = actionTimestamps[actionKey] || [];
   
   // Filter timestamps within window
@@ -27,6 +46,39 @@ export function checkRateLimit(actionKey: string, maxHits: number = 5, windowMs:
   recent.push(now);
   actionTimestamps[actionKey] = recent;
   return true;
+}
+
+/**
+ * Generates a cryptographically strong unique ID (replaces insecure Math.random, CWE-330)
+ */
+export function generateSecureId(prefix: string = 'match_'): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return prefix + crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+  }
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const array = new Uint32Array(2);
+    crypto.getRandomValues(array);
+    return prefix + array[0].toString(36) + array[1].toString(36);
+  }
+  // Safe fallback
+  return prefix + Date.now().toString(36) + Math.floor(Math.random() * 1000000).toString(36);
+}
+
+/**
+ * Masks an email address for privacy and KVKK / OWASP log compliance (CWE-532)
+ * Example: 'ahmet@example.com' -> 'a***t@example.com'
+ */
+export function maskEmail(email?: string | null): string {
+  if (!email || typeof email !== 'string') return '';
+  const trimmed = email.trim();
+  const atIndex = trimmed.indexOf('@');
+  if (atIndex <= 0) return '***';
+  const user = trimmed.slice(0, atIndex);
+  const domain = trimmed.slice(atIndex + 1);
+  const maskedUser = user.length > 2 
+    ? `${user[0]}***${user[user.length - 1]}` 
+    : `${user[0]}***`;
+  return `${maskedUser}@${domain}`;
 }
 
 /**

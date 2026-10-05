@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   auth, db, handleFirestoreError, OperationType 
 } from '../utils/firebase';
@@ -23,7 +23,8 @@ import {
   isValidUsername, 
   isValidEmail, 
   isValidPassword, 
-  checkRateLimit 
+  checkRateLimit,
+  generateSecureId 
 } from '../utils/security';
 
 interface OnlineLobbyProps {
@@ -58,6 +59,17 @@ export default function OnlineLobby({
   const [hostSelectedTheme, setHostSelectedTheme] = useState<TeamTheme>(TEAMS[0]);
   const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
   const [matchStatusMsg, setMatchStatusMsg] = useState<string | null>(null);
+  const roomUnsubRef = useRef<(() => void) | null>(null);
+
+  // Clean up room listener on unmount
+  useEffect(() => {
+    return () => {
+      if (roomUnsubRef.current) {
+        roomUnsubRef.current();
+        roomUnsubRef.current = null;
+      }
+    };
+  }, []);
 
   // Monitor auth status
   useEffect(() => {
@@ -244,7 +256,7 @@ export default function OnlineLobby({
       return;
     }
     setIsActionLoading(true);
-    const matchId = 'match_' + Math.random().toString(36).substring(2, 10);
+    const matchId = generateSecureId('match_');
     setMatchStatusMsg('Online oda kuruluyor, rakip bekleniyor...');
     
     try {
@@ -267,12 +279,21 @@ export default function OnlineLobby({
       });
       setActiveMatchId(matchId);
       
+      // Cancel previous room listener if any
+      if (roomUnsubRef.current) {
+        roomUnsubRef.current();
+        roomUnsubRef.current = null;
+      }
+
       // Setup dynamic listener for this room to watch if opponent joins
       const unsub = onSnapshot(matchRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.guestId) {
-            unsub(); // stop listening
+            if (roomUnsubRef.current) {
+              roomUnsubRef.current();
+              roomUnsubRef.current = null;
+            }
             setMatchStatusMsg('Rakip bağlandı! Maç başlatılıyor...');
             
             // Sync host & guest themes
@@ -294,9 +315,10 @@ export default function OnlineLobby({
           }
         }
       });
+      roomUnsubRef.current = unsub;
     } catch (err: any) {
       handleFirestoreError(err, OperationType.CREATE, `matches/${matchId}`);
-      setMatchStatusMsg('Oda kurulamadı: ' + err.message);
+      setMatchStatusMsg('Oda kurulamadı: ' + (err.message || 'Hata oluştu'));
     } finally {
       setIsActionLoading(false);
     }
@@ -340,7 +362,7 @@ export default function OnlineLobby({
 
     } catch (err: any) {
       handleFirestoreError(err, OperationType.UPDATE, `matches/${match.id}`);
-      setMatchStatusMsg('Odaya katılım başarısız oldu: ' + err.message);
+      setMatchStatusMsg('Odaya katılım başarısız oldu: ' + (err.message || 'Hata oluştu'));
     } finally {
       setIsActionLoading(false);
     }
@@ -348,6 +370,10 @@ export default function OnlineLobby({
 
   // Cancel hosting (delete room)
   const handleCancelHosting = async () => {
+    if (roomUnsubRef.current) {
+      roomUnsubRef.current();
+      roomUnsubRef.current = null;
+    }
     if (!activeMatchId) return;
     try {
       await deleteDoc(doc(db, 'matches', activeMatchId));

@@ -2695,7 +2695,7 @@ export default function App() {
         <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
           <div className="flex items-center gap-1.5 text-slate-400">
             <ShieldAlert className="w-3.5 h-3.5 text-slate-500" />
-            <span>Kafadan Taktik %100 Yerel Depolamalı, KVKK-Uyumlu & Ücretsiz Eğlence Yazılımıdır.</span>
+            <span>Kafadan Taktik KVKK-Uyumlu, Güvenli &amp; Ücretsiz Futbol Strateji Yazılımıdır.</span>
           </div>
           <span className="hidden md:inline text-slate-700">•</span>
           <span className="text-slate-500">© 2026 Kafadan Taktik</span>
