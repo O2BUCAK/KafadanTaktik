@@ -19,11 +19,12 @@
     "motion": "^12.23.24",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
-    "vite": "^6.2.3"
+    "vite": "^6.4.5"
   },
   "overrides": {
     "qs": "^6.16.0",
-    "@grpc/grpc-js": "^1.14.0"
+    "@grpc/grpc-js": "^1.14.0",
+    "source-map-js": "^1.2.2"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
@@ -32,6 +33,6 @@
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.3"
+    "vite": "^6.4.5"
   }
 }
